@@ -1,0 +1,36 @@
+# Virtual Environment
+venv/
+env/
+ENV/
+.venv/
+
+# Secrets & Environment Variables (NEVER commit API keys!)
+.env
+.env.local
+*.env
+
+# Python Bytecode & Cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+
+# Audio outputs & temporary test recordings
+*.mp3
+*.wav
+
+# User uploaded documents at runtime
+uploads/
+
+# IDE & Editor files
+.vscode/
+.idea/
+.gemini/
+.antigravity/
+.antigravity-ide/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db

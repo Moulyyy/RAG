@@ -1,0 +1,1140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voice Book RAG — Interactive AI Reading Companion</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🩺</text></svg>">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #090d16;
+            --surface: rgba(18, 24, 38, 0.7);
+            --surface-border: rgba(255, 255, 255, 0.08);
+            --accent-primary: #6366f1;
+            --accent-glow: rgba(99, 102, 241, 0.35);
+            --accent-cyan: #06b6d4;
+            --accent-emerald: #10b981;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --danger: #ef4444;
+            --radius-lg: 20px;
+            --radius-md: 12px;
+            --radius-sm: 8px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background: var(--bg);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            background-image: 
+                radial-gradient(circle at 15% 20%, rgba(99, 102, 241, 0.12) 0%, transparent 40%),
+                radial-gradient(circle at 85% 80%, rgba(6, 182, 212, 0.08) 0%, transparent 40%);
+            overflow-x: hidden;
+        }
+
+        /* Header */
+        header {
+            padding: 1.25rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--surface-border);
+            backdrop-filter: blur(12px);
+            background: rgba(9, 13, 22, 0.6);
+            position: sticky;
+            top: 0;
+            z-index: 50;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .brand-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, var(--accent-primary), var(--accent-cyan));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 0 20px var(--accent-glow);
+        }
+
+        .brand-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+        }
+
+        .doc-badge {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: var(--surface);
+            border: 1px solid var(--surface-border);
+            padding: 8px 16px;
+            border-radius: 30px;
+            font-size: 0.85rem;
+        }
+
+        .pulse-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--accent-emerald);
+            box-shadow: 0 0 8px var(--accent-emerald);
+        }
+
+        .btn-switch {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--surface-border);
+            color: var(--text-main);
+            padding: 8px 16px;
+            border-radius: 30px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-switch:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.2);
+            transform: translateY(-1px);
+        }
+
+        /* Main Layout */
+        main {
+            flex: 1;
+            max-width: 900px;
+            width: 100%;
+            margin: 0 auto;
+            padding: 2rem 1.5rem 6rem;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        /* Voice Visualizer Hero */
+        .voice-hero {
+            background: var(--surface);
+            border: 1px solid var(--surface-border);
+            border-radius: var(--radius-lg);
+            padding: 2.5rem 2rem;
+            text-align: center;
+            backdrop-filter: blur(16px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .voice-hero::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 20%;
+            right: 20%;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--accent-primary), transparent);
+        }
+
+        .voice-controls-row {
+            margin: 1.5rem 0 1rem;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 28px;
+        }
+
+        .control-btn-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .control-btn-label {
+            font-size: 0.78rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            transition: color 0.2s;
+        }
+
+        .action-circle-btn {
+            width: 82px;
+            height: 82px;
+            border-radius: 50%;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            position: relative;
+        }
+
+        .mic-btn {
+            background: linear-gradient(135deg, var(--accent-primary), #4f46e5);
+            color: white;
+            box-shadow: 0 0 32px var(--accent-glow);
+        }
+
+        .mic-btn:hover {
+            transform: scale(1.08);
+            box-shadow: 0 0 45px rgba(99, 102, 241, 0.6);
+        }
+
+        .mic-btn.listening {
+            background: linear-gradient(135deg, var(--danger), #dc2626);
+            animation: pulse-ring 1.5s infinite;
+        }
+
+        @keyframes pulse-ring {
+            0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+            70% { box-shadow: 0 0 0 25px rgba(239, 68, 68, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+        }
+
+        .stop-btn-hero {
+            background: rgba(239, 68, 68, 0.1);
+            border: 2px solid rgba(239, 68, 68, 0.35);
+            color: #f87171;
+            box-shadow: 0 4px 18px rgba(0, 0, 0, 0.25);
+        }
+
+        .stop-btn-hero:hover {
+            background: rgba(239, 68, 68, 0.25);
+            border-color: rgba(239, 68, 68, 0.75);
+            color: #fca5a5;
+            transform: scale(1.08);
+            box-shadow: 0 0 30px rgba(239, 68, 68, 0.45);
+        }
+
+        .stop-btn-hero.active-playing,
+        .stop-btn-hero.active-listening {
+            background: linear-gradient(135deg, #ef4444, #b91c1c);
+            color: white;
+            border-color: #fca5a5;
+            animation: stop-pulse 1.6s infinite;
+        }
+
+        @keyframes stop-pulse {
+            0% {
+                box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+                transform: scale(1);
+            }
+            50% {
+                box-shadow: 0 0 0 14px rgba(239, 68, 68, 0);
+                transform: scale(1.04);
+            }
+            100% {
+                box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+                transform: scale(1);
+            }
+        }
+
+        .sound-wave {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            height: 32px;
+            margin-top: 10px;
+        }
+
+        .wave-bar {
+            width: 4px;
+            height: 8px;
+            background: var(--accent-cyan);
+            border-radius: 4px;
+            transition: height 0.15s ease;
+        }
+
+        .sound-wave.active .wave-bar {
+            animation: soundWave 0.8s ease-in-out infinite alternate;
+        }
+        .sound-wave.active .wave-bar:nth-child(2) { animation-delay: 0.15s; }
+        .sound-wave.active .wave-bar:nth-child(3) { animation-delay: 0.3s; }
+        .sound-wave.active .wave-bar:nth-child(4) { animation-delay: 0.45s; }
+        .sound-wave.active .wave-bar:nth-child(5) { animation-delay: 0.2s; }
+
+        @keyframes soundWave {
+            0% { height: 6px; }
+            100% { height: 28px; background: var(--accent-primary); }
+        }
+
+        /* Voice settings */
+        .voice-bar {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-top: 10px;
+        }
+
+        select {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--surface-border);
+            color: var(--text-main);
+            padding: 6px 12px;
+            border-radius: 8px;
+            outline: none;
+            font-size: 0.85rem;
+        }
+
+        /* Input Card */
+        .input-box-container {
+            display: flex;
+            gap: 12px;
+            background: var(--surface);
+            border: 1px solid var(--surface-border);
+            border-radius: var(--radius-md);
+            padding: 8px 12px;
+            align-items: center;
+            backdrop-filter: blur(12px);
+        }
+
+        .input-box {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: var(--text-main);
+            font-size: 1rem;
+            font-family: inherit;
+            padding: 8px;
+            outline: none;
+        }
+
+        .input-box::placeholder {
+            color: #64748b;
+        }
+
+        .input-actions-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-send {
+            background: var(--accent-primary);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s;
+        }
+
+        .btn-send:hover {
+            background: #4f46e5;
+            transform: translateY(-1px);
+        }
+
+        .btn-stop-query {
+            background: rgba(239, 68, 68, 0.14);
+            border: 1px solid rgba(239, 68, 68, 0.45);
+            color: #fca5a5;
+            padding: 10px 18px;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 0.92rem;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .btn-stop-query:hover {
+            background: #ef4444;
+            border-color: #ef4444;
+            color: white;
+            box-shadow: 0 0 16px rgba(239, 68, 68, 0.5);
+            transform: translateY(-1px);
+        }
+
+        .btn-stop-query.is-active {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            border-color: #fca5a5;
+            color: white;
+            box-shadow: 0 0 18px rgba(239, 68, 68, 0.6);
+            animation: stop-pulse 1.6s infinite;
+        }
+
+        /* Results / Answer Section */
+        .result-card {
+            background: var(--surface);
+            border: 1px solid var(--surface-border);
+            border-radius: var(--radius-lg);
+            padding: 2rem;
+            backdrop-filter: blur(16px);
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .result-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+            padding-bottom: 12px;
+        }
+
+        .result-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .audio-control-pills {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-audio-pill {
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .btn-replay {
+            background: rgba(99, 102, 241, 0.15);
+            border: 1px solid var(--accent-primary);
+            color: #c7d2fe;
+        }
+
+        .btn-replay:hover {
+            background: var(--accent-primary);
+            color: white;
+            transform: translateY(-1px);
+        }
+
+        .btn-stop-audio {
+            background: rgba(239, 68, 68, 0.12);
+            border: 1px solid rgba(239, 68, 68, 0.45);
+            color: #fca5a5;
+        }
+
+        .btn-stop-audio:hover {
+            background: var(--danger);
+            border-color: var(--danger);
+            color: white;
+            box-shadow: 0 0 15px rgba(239, 68, 68, 0.4);
+            transform: translateY(-1px);
+        }
+
+        .btn-stop-audio.active-playing {
+            background: rgba(239, 68, 68, 0.28);
+            border-color: var(--danger);
+            color: #ffffff;
+            box-shadow: 0 0 14px rgba(239, 68, 68, 0.35);
+        }
+
+        .answer-text {
+            font-size: 1.05rem;
+            line-height: 1.7;
+            color: #e2e8f0;
+            margin-bottom: 1.5rem;
+            white-space: pre-line;
+        }
+
+        /* Citations Pills */
+        .citations-section {
+            background: rgba(0, 0, 0, 0.25);
+            border-radius: var(--radius-md);
+            padding: 1rem 1.25rem;
+            border: 1px solid rgba(255, 255, 255, 0.04);
+        }
+
+        .citations-label {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        .citation-item {
+            background: rgba(255, 255, 255, 0.03);
+            border-left: 3px solid var(--accent-cyan);
+            border-radius: 4px;
+            padding: 10px 14px;
+            margin-bottom: 10px;
+            font-size: 0.9rem;
+        }
+
+        .citation-meta {
+            font-weight: 600;
+            color: var(--accent-cyan);
+            margin-bottom: 4px;
+            font-size: 0.8rem;
+        }
+
+        .citation-excerpt {
+            color: #94a3b8;
+            font-style: italic;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.82rem;
+            line-height: 1.5;
+        }
+
+        /* Upload Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(8px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+        }
+
+        .modal {
+            background: #111827;
+            border: 1px solid var(--surface-border);
+            border-radius: var(--radius-lg);
+            width: 90%;
+            max-width: 500px;
+            padding: 2rem;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
+        }
+
+        .drop-zone {
+            border: 2px dashed rgba(99, 102, 241, 0.4);
+            border-radius: var(--radius-md);
+            padding: 2.5rem 1.5rem;
+            text-align: center;
+            margin: 1.5rem 0;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .drop-zone:hover {
+            border-color: var(--accent-primary);
+            background: rgba(99, 102, 241, 0.05);
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 18px;
+            height: 18px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="brand">
+            <div class="brand-icon">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>
+            </div>
+            <div>
+                <div class="brand-title">Voice Book RAG</div>
+                <div style="font-size: 0.75rem; color: var(--text-muted);">Gemini 2.5 Flash + ChromaDB + Edge-TTS</div>
+            </div>
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 12px;">
+            <div class="doc-badge" id="docBadge">
+                <div class="pulse-dot"></div>
+                <span id="activeDocTitle">Loading document...</span>
+                <span id="chunkCountBadge" style="color: var(--accent-cyan); font-weight: 700;"></span>
+            </div>
+            <button class="btn-switch" onclick="openModal()">Change Book</button>
+        </div>
+    </header>
+
+    <main>
+        <!-- Voice Hero Section -->
+        <section class="voice-hero">
+            <h1 style="font-size: 1.75rem; font-weight: 800; letter-spacing: -0.02em;">Ask Your Book Anything</h1>
+            <p style="color: var(--text-muted); margin-top: 6px; font-size: 0.95rem;">Tap the microphone to speak, or type your question below</p>
+
+            <div class="voice-controls-row">
+                <div class="control-btn-item">
+                    <button class="action-circle-btn mic-btn" id="micBtn" onclick="toggleListening()" title="Start / Stop Voice Recording (Mic)">
+                        <svg id="micIcon" width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>
+                    </button>
+                    <span class="control-btn-label" id="micLabel">Speak</span>
+                </div>
+                <div class="control-btn-item">
+                    <button class="action-circle-btn stop-btn-hero" id="heroStopBtn" onclick="stopAllAudio()" title="Stop Voice Narration / Cancel (Esc)">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><rect x="5" y="5" width="14" height="14" rx="3"/></svg>
+                    </button>
+                    <span class="control-btn-label">Stop</span>
+                </div>
+            </div>
+
+            <div id="listeningStatus" style="font-size: 0.9rem; font-weight: 600; color: var(--text-muted); height: 20px;">
+                Ready to listen
+            </div>
+
+            <div class="sound-wave" id="soundWave">
+                <div class="wave-bar"></div>
+                <div class="wave-bar"></div>
+                <div class="wave-bar"></div>
+                <div class="wave-bar"></div>
+                <div class="wave-bar"></div>
+            </div>
+
+            <div class="voice-bar">
+                <span>Narrator Voice:</span>
+                <select id="voiceSelect">
+                    <option value="en-US-ChristopherNeural">Christopher (Deep Narrator)</option>
+                    <option value="en-US-JennyNeural">Jenny (Natural Female)</option>
+                    <option value="en-GB-RyanNeural">Ryan (British Academic)</option>
+                    <option value="en-US-GuyNeural">Guy (Warm Conversational)</option>
+                    <option value="none">🔇 Text Only (Ultra-Fast Real-Time)</option>
+                </select>
+            </div>
+        </section>
+
+        <!-- Input Box -->
+        <div class="input-box-container">
+            <input type="text" id="queryInput" class="input-box" placeholder="Ask a question about the book... (e.g. Causes of acute hepatitis?)" onkeydown="if(event.key==='Enter') submitQuery()">
+            <div class="input-actions-group">
+                <button class="btn-send" id="sendBtn" onclick="submitQuery()" title="Send Question (Enter)">
+                    <span id="sendBtnText">Ask</span>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" x2="11" y1="2" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                </button>
+                <button class="btn-stop-query" id="stopQueryBtn" onclick="stopAllAudio()" title="Stop answering or voice playback (Esc)">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="5" y="5" width="14" height="14" rx="2"/></svg>
+                    <span>Stop</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Answer / Results Card -->
+        <article class="result-card" id="resultCard">
+            <div class="result-header">
+                <div class="result-title">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent-primary)" stroke-width="2.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                    <span>Grounded Answer</span>
+                </div>
+                <div class="audio-control-pills">
+                    <button class="btn-audio-pill btn-replay" id="replayBtn" onclick="replayAudio()" title="Replay voice response">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                        <span>Replay Voice</span>
+                    </button>
+                    <button class="btn-audio-pill btn-stop-audio" id="stopAudioBtn" onclick="stopAllAudio()" title="Stop voice playback">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><rect x="5" y="5" width="14" height="14" rx="2"/></svg>
+                        <span>Stop Voice</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="answer-text" id="answerText"></div>
+
+            <div class="citations-section">
+                <div class="citations-label">Sources & Book Excerpts</div>
+                <div id="citationsList"></div>
+            </div>
+        </article>
+    </main>
+
+    <!-- Upload / Replace Document Modal -->
+    <div class="modal-overlay" id="modalOverlay" onclick="if(event.target===this) closeModal()">
+        <div class="modal">
+            <h2 style="font-size: 1.3rem; margin-bottom: 8px;">Upload / Replace Book</h2>
+            <p style="color: var(--text-muted); font-size: 0.85rem;">Select any PDF or TXT book to update your knowledge base.</p>
+
+            <div class="drop-zone" onclick="document.getElementById('fileInput').click()">
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--accent-primary)" stroke-width="2" style="margin-bottom: 8px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>
+                <div style="font-weight: 600;" id="fileChosenText">Choose PDF / TXT Document</div>
+                <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 4px;">Click to browse</div>
+                <input type="file" id="fileInput" accept=".pdf,.txt,.md" style="display: none;" onchange="onFileSelected(this)">
+            </div>
+
+            <div style="margin-bottom: 1.5rem;">
+                <label style="font-size: 0.85rem; color: var(--text-muted); display: block; margin-bottom: 6px;">Max Pages to Index (Optional):</label>
+                <input type="number" id="maxPagesInput" placeholder="Leave empty for entire book, or e.g. 50" style="width: 100%; background: rgba(255,255,255,0.05); border: 1px solid var(--surface-border); color: white; padding: 10px; border-radius: 8px; outline: none;">
+            </div>
+
+            <div style="display: flex; justify-content: flex-end; gap: 10px;">
+                <button class="btn-switch" onclick="closeModal()">Cancel</button>
+                <button class="btn-send" id="uploadBtn" onclick="uploadDocument()">Upload & Index</button>
+            </div>
+            <div id="uploadStatus" style="font-size: 0.85rem; margin-top: 12px; color: var(--accent-cyan);"></div>
+        </div>
+    </div>
+
+    <!-- Hidden audio element for speech playback -->
+    <audio id="audioPlayer"></audio>
+
+    <script>
+        let isListening = false;
+        let recognition = null;
+        let currentAudioSrc = null;
+        let activeQueryAbortController = null;
+
+        const audioPlayer = document.getElementById('audioPlayer');
+
+        // Monitor audio playback events to keep UI states perfectly synced
+        if (audioPlayer) {
+            audioPlayer.addEventListener('play', () => {
+                setIsAudioPlaying(true);
+            });
+            audioPlayer.addEventListener('pause', () => {
+                setIsAudioPlaying(false);
+            });
+            audioPlayer.addEventListener('ended', () => {
+                setIsAudioPlaying(false);
+            });
+            audioPlayer.addEventListener('error', (e) => {
+                console.error("Audio error:", e);
+                setIsAudioPlaying(false);
+            });
+        }
+
+        function setIsAudioPlaying(playing) {
+            const heroStopBtn = document.getElementById('heroStopBtn');
+            const stopAudioBtn = document.getElementById('stopAudioBtn');
+            const stopQueryBtn = document.getElementById('stopQueryBtn');
+            const soundWave = document.getElementById('soundWave');
+            const listeningStatus = document.getElementById('listeningStatus');
+
+            if (playing) {
+                soundWave.classList.add('active');
+                if (heroStopBtn) heroStopBtn.classList.add('active-playing');
+                if (stopAudioBtn) stopAudioBtn.classList.add('active-playing');
+                if (stopQueryBtn) stopQueryBtn.classList.add('is-active');
+                if (listeningStatus && !isListening) {
+                    listeningStatus.innerText = "🔊 Speaking answer...";
+                    listeningStatus.style.color = "var(--accent-cyan)";
+                }
+            } else {
+                if (heroStopBtn) heroStopBtn.classList.remove('active-playing');
+                if (stopAudioBtn) stopAudioBtn.classList.remove('active-playing');
+                if (stopQueryBtn && !activeQueryAbortController) stopQueryBtn.classList.remove('is-active');
+                if (!isListening) {
+                    soundWave.classList.remove('active');
+                    if (listeningStatus && listeningStatus.innerText.includes("Speaking")) {
+                        listeningStatus.innerText = "Ready to listen";
+                        listeningStatus.style.color = "var(--text-muted)";
+                    }
+                }
+            }
+        }
+
+        // Global stop function: cancels audio playback, speech recognition, and active query
+        function stopAllAudio() {
+            let stoppedSomething = false;
+
+            // 1. Stop audio playback
+            if (audioPlayer && (!audioPlayer.paused || audioPlayer.currentTime > 0)) {
+                audioPlayer.pause();
+                audioPlayer.currentTime = 0;
+                stoppedSomething = true;
+            }
+
+            // 2. Stop speech recognition if listening
+            if (isListening) {
+                if (recognition) {
+                    try { recognition.abort(); } catch (e) { try { recognition.stop(); } catch(e2){} }
+                }
+                stopListening();
+                stoppedSomething = true;
+            }
+
+            // 3. Abort in-flight query fetch
+            if (activeQueryAbortController) {
+                activeQueryAbortController.abort();
+                activeQueryAbortController = null;
+                stoppedSomething = true;
+
+                const sendBtn = document.getElementById('sendBtn');
+                const sendBtnText = document.getElementById('sendBtnText');
+                if (sendBtn) sendBtn.disabled = false;
+                if (sendBtnText) sendBtnText.innerText = "Ask";
+            }
+
+            const stopQueryBtn = document.getElementById('stopQueryBtn');
+            if (stopQueryBtn) stopQueryBtn.classList.remove('is-active');
+
+            setIsAudioPlaying(false);
+            document.getElementById('soundWave').classList.remove('active');
+
+            const status = document.getElementById('listeningStatus');
+            if (status) {
+                status.innerText = stoppedSomething ? "Stopped" : "Ready to listen";
+                status.style.color = "var(--text-muted)";
+                if (stoppedSomething) {
+                    setTimeout(() => {
+                        if (!isListening && (!audioPlayer || audioPlayer.paused)) {
+                            status.innerText = "Ready to listen";
+                        }
+                    }, 1800);
+                }
+            }
+        }
+
+        // Keyboard shortcut: Escape key stops voice / audio
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                stopAllAudio();
+            }
+        });
+
+        // Initialize Speech Recognition if supported in browser
+        if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+            const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+            recognition = new SpeechRec();
+            recognition.continuous = false;
+            recognition.interimResults = true;
+            recognition.lang = 'en-US';
+
+            recognition.onstart = () => {
+                isListening = true;
+                document.getElementById('micBtn').classList.add('listening');
+                document.getElementById('soundWave').classList.add('active');
+                document.getElementById('listeningStatus').innerText = "Listening to your voice...";
+                document.getElementById('listeningStatus').style.color = "var(--accent-cyan)";
+                const heroStopBtn = document.getElementById('heroStopBtn');
+                if (heroStopBtn) heroStopBtn.classList.add('active-listening');
+            };
+
+            recognition.onresult = (event) => {
+                let transcript = '';
+                for (let i = event.resultIndex; i < event.results.length; ++i) {
+                    transcript += event.results[i][0].transcript;
+                }
+                document.getElementById('queryInput').value = transcript;
+            };
+
+            recognition.onerror = (event) => {
+                console.error("Speech recognition error:", event.error);
+                stopListening();
+            };
+
+            recognition.onend = () => {
+                stopListening();
+                // If text was spoken, auto-submit
+                const val = document.getElementById('queryInput').value.trim();
+                if (val.length > 3) {
+                    submitQuery();
+                }
+            };
+        }
+
+        function toggleListening() {
+            // Stop any currently playing audio before listening
+            if (audioPlayer && !audioPlayer.paused) {
+                audioPlayer.pause();
+                audioPlayer.currentTime = 0;
+            }
+
+            if (!recognition) {
+                alert("Speech Recognition is not supported in this browser. Please use Google Chrome or Microsoft Edge.");
+                return;
+            }
+            if (isListening) {
+                recognition.stop();
+                stopListening();
+            } else {
+                document.getElementById('queryInput').value = "";
+                recognition.start();
+            }
+        }
+
+        function stopListening() {
+            isListening = false;
+            document.getElementById('micBtn').classList.remove('listening');
+            const heroStopBtn = document.getElementById('heroStopBtn');
+            if (heroStopBtn) heroStopBtn.classList.remove('active-listening');
+            if (!audioPlayer || audioPlayer.paused) {
+                document.getElementById('soundWave').classList.remove('active');
+                document.getElementById('listeningStatus').innerText = "Ready to listen";
+                document.getElementById('listeningStatus').style.color = "var(--text-muted)";
+            }
+        }
+
+        // Fetch document status
+        async function fetchStatus() {
+            try {
+                const res = await fetch('/api/status');
+                const data = await res.json();
+                document.getElementById('activeDocTitle').innerText = data.current_document;
+                document.getElementById('chunkCountBadge').innerText = `(${data.total_chunks} chunks)`;
+            } catch (e) {
+                console.error("Error fetching status:", e);
+            }
+        }
+
+        // Submit RAG query
+        async function submitQuery() {
+            const query = document.getElementById('queryInput').value.trim();
+            if (!query) return;
+
+            // Stop any existing audio before asking a new question
+            if (audioPlayer && !audioPlayer.paused) {
+                audioPlayer.pause();
+                audioPlayer.currentTime = 0;
+            }
+
+            const voice = document.getElementById('voiceSelect').value;
+            const sendBtn = document.getElementById('sendBtn');
+            const sendBtnText = document.getElementById('sendBtnText');
+
+            if (activeQueryAbortController) {
+                activeQueryAbortController.abort();
+            }
+            activeQueryAbortController = new AbortController();
+
+            sendBtn.disabled = true;
+            sendBtnText.innerHTML = '<div class="loading-spinner"></div>';
+            document.getElementById('soundWave').classList.add('active');
+            document.getElementById('listeningStatus').innerText = "Searching book & generating voice answer...";
+            document.getElementById('listeningStatus').style.color = "var(--accent-primary)";
+
+            const stopQueryBtn = document.getElementById('stopQueryBtn');
+            if (stopQueryBtn) stopQueryBtn.classList.add('is-active');
+
+            // Display result card immediately with real-time placeholder
+            const resultCard = document.getElementById('resultCard');
+            const answerText = document.getElementById('answerText');
+            const citationsList = document.getElementById('citationsList');
+            resultCard.style.display = 'block';
+            answerText.innerText = '⚡ Searching knowledge base and generating answer...';
+            citationsList.innerHTML = '<div style="color: var(--text-muted); font-size: 0.85rem;">Retrieving relevant book sections...</div>';
+
+            try {
+                const res = await fetch('/api/query/stream', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ question: query, voice: voice }),
+                    signal: activeQueryAbortController.signal
+                });
+
+                if (!res.ok) {
+                    const err = await res.json().catch(() => ({ detail: "Query failed" }));
+                    alert(`Error: ${err.detail || "Query failed"}`);
+                    return;
+                }
+
+                const reader = res.body.getReader();
+                const decoder = new TextDecoder("utf-8");
+                let buffer = '';
+                let accumulatedAnswer = '';
+                let firstToken = true;
+
+                while (true) {
+                    const { value, done } = await reader.read();
+                    if (done) break;
+
+                    buffer += decoder.decode(value, { stream: true });
+                    const lines = buffer.split('\n');
+                    buffer = lines.pop(); // Keep unfinished tail
+
+                    for (const line of lines) {
+                        if (line.startsWith('data: ')) {
+                            const rawData = line.slice(6).trim();
+                            if (!rawData) continue;
+                            try {
+                                const ev = JSON.parse(rawData);
+
+                                if (ev.type === 'sources') {
+                                    citationsList.innerHTML = '';
+                                    if (ev.sources && ev.sources.length) {
+                                        ev.sources.forEach(s => {
+                                            const div = document.createElement('div');
+                                            div.className = 'citation-item';
+                                            div.innerHTML = `
+                                                <div class="citation-meta">📖 ${s.source} — Page ${s.page} (Match: ${Math.round(s.similarity * 100)}%)</div>
+                                                <div class="citation-excerpt">"${s.excerpt}"</div>
+                                            `;
+                                            citationsList.appendChild(div);
+                                        });
+                                    } else {
+                                        citationsList.innerHTML = '<div style="color: var(--text-muted); font-size: 0.85rem;">No citations available in textbook.</div>';
+                                    }
+                                } else if (ev.type === 'token') {
+                                    if (firstToken) {
+                                        accumulatedAnswer = '';
+                                        firstToken = false;
+                                        document.getElementById('listeningStatus').innerText = "Streaming real-time answer...";
+                                    }
+                                    accumulatedAnswer += ev.token;
+                                    answerText.innerText = accumulatedAnswer;
+                                } else if (ev.type === 'done') {
+                                    accumulatedAnswer = ev.full_answer;
+                                    answerText.innerText = accumulatedAnswer;
+                                }
+                            } catch (parseErr) {
+                                console.error("Error parsing stream event:", parseErr);
+                            }
+                        }
+                    }
+                }
+
+                // If voice option is enabled, generate audio asynchronously via /api/tts
+                if (accumulatedAnswer && voice !== 'none') {
+                    document.getElementById('listeningStatus').innerText = "🔊 Preparing voice narration...";
+                    fetch('/api/tts', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ text: accumulatedAnswer, voice: voice }),
+                        signal: activeQueryAbortController ? activeQueryAbortController.signal : undefined
+                    })
+                    .then(r => r.json())
+                    .then(data => {
+                        if (data.audio_base64) {
+                            currentAudioSrc = data.audio_base64;
+                            playAudio(data.audio_base64);
+                        }
+                    })
+                    .catch(err => {
+                        if (err.name !== 'AbortError') console.warn("TTS error:", err);
+                    });
+                }
+
+            } catch (e) {
+                if (e.name === 'AbortError') {
+                    console.log("Query cancelled by user.");
+                    document.getElementById('listeningStatus').innerText = "Query cancelled";
+                    document.getElementById('listeningStatus').style.color = "var(--text-muted)";
+                    return;
+                }
+                alert("Network error: " + e.message);
+            } finally {
+                activeQueryAbortController = null;
+                sendBtn.disabled = false;
+                sendBtnText.innerText = "Ask";
+                if (stopQueryBtn && (!audioPlayer || audioPlayer.paused)) {
+                    stopQueryBtn.classList.remove('is-active');
+                }
+                if (!audioPlayer || audioPlayer.paused) {
+                    document.getElementById('soundWave').classList.remove('active');
+                    if (!document.getElementById('listeningStatus').innerText.includes("Speaking")) {
+                        document.getElementById('listeningStatus').innerText = "Ready to listen";
+                        document.getElementById('listeningStatus').style.color = "var(--text-muted)";
+                    }
+                }
+            }
+        }
+
+        function playAudio(src) {
+            if (!audioPlayer) return;
+            audioPlayer.src = src;
+            audioPlayer.play().catch(e => {
+                console.warn("Autoplay was prevented or playback failed:", e);
+            });
+        }
+
+        function replayAudio() {
+            if (currentAudioSrc) {
+                playAudio(currentAudioSrc);
+            }
+        }
+
+        // Modal controls
+        function openModal() {
+            document.getElementById('modalOverlay').style.display = 'flex';
+        }
+
+        function closeModal() {
+            document.getElementById('modalOverlay').style.display = 'none';
+            document.getElementById('uploadStatus').innerText = '';
+        }
+
+        function onFileSelected(input) {
+            if (input.files && input.files[0]) {
+                document.getElementById('fileChosenText').innerText = input.files[0].name;
+            }
+        }
+
+        // Upload and replace document
+        async function uploadDocument() {
+            const fileInput = document.getElementById('fileInput');
+            if (!fileInput.files || !fileInput.files[0]) {
+                alert("Please select a file first.");
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+
+            const maxPages = document.getElementById('maxPagesInput').value;
+            if (maxPages) {
+                formData.append('max_pages', maxPages);
+            }
+
+            const uploadBtn = document.getElementById('uploadBtn');
+            const statusDiv = document.getElementById('uploadStatus');
+            uploadBtn.disabled = true;
+            statusDiv.innerText = "Extracting text, chunking & indexing into ChromaDB (this may take a minute)...";
+
+            try {
+                const res = await fetch('/api/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await res.json();
+                if (!res.ok) {
+                    alert(data.detail || "Upload failed");
+                    return;
+                }
+                statusDiv.innerText = `Success! Indexed ${data.chunks_indexed} chunks.`;
+                setTimeout(() => {
+                    closeModal();
+                    fetchStatus();
+                }, 1500);
+            } catch (e) {
+                statusDiv.innerText = "Upload failed: " + e.message;
+            } finally {
+                uploadBtn.disabled = false;
+            }
+        }
+
+        // Init on load
+        fetchStatus();
+    </script>
+</body>
+</html>
