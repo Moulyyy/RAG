@@ -5,6 +5,7 @@
 [![Gemini](https://img.shields.io/badge/Gemini-2.5%20Flash-orange.svg)](https://ai.google.dev)
 [![ChromaDB](https://img.shields.io/badge/Vector%20Store-ChromaDB-red.svg)](https://www.trychroma.com)
 [![TTS](https://img.shields.io/badge/Voice-Edge--TTS-brightgreen.svg)](https://github.com/rany2/edge-tts)
+[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/Moulyyy/RAG)
 
 A conversational, voice-enabled Retrieval-Augmented Generation (RAG) assistant optimized for **ultra-low latency and real-time streaming responses**. Ask questions by speaking into your microphone or typing, and receive answers grounded in your textbooks, complete with precise page citations and audio narration.
 
@@ -130,24 +131,41 @@ python ingest.py --file "path/to/your_book.pdf" --pages 60 --wipe
 
 ---
 
-## 🌐 Cloud Deployment & Hosting
+## 🌐 Deployment Options
 
-### Note on GitHub Pages:
-GitHub Pages only hosts static files (HTML, CSS, client-side JS) and **cannot run Python backends, FastAPI, ChromaDB, or Edge-TTS**. To run the live interactive app in the cloud, choose one of the free/low-cost platforms below:
+### 1. Directly on GitHub: GitHub Codespaces (1-Click Cloud Run)
+GitHub includes built-in cloud virtual machines called **GitHub Codespaces** (free 60 hours/month on all GitHub accounts). Since this repository includes `.devcontainer/devcontainer.json`, you can run the entire stack right on GitHub:
 
-### Option 1: Hugging Face Spaces (Recommended Free Option)
-1. Create a new Space on [Hugging Face](https://huggingface.co/spaces) and select **Docker** as the SDK.
-2. Push this repository to your Space repository.
-3. In Space Settings, add the secret `GEMINI_API_KEY`.
-4. Your application is live with persistent URL!
+1. Click the **[Open in GitHub Codespaces](https://codespaces.new/Moulyyy/RAG)** button above, or go to your GitHub repo $\rightarrow$ click **`Code`** $\rightarrow$ **`Codespaces`** $\rightarrow$ **`Create codespace on main`**.
+2. Set your Gemini API key in the Codespace terminal:
+   ```bash
+   export GEMINI_API_KEY="your_api_key_here"
+   ```
+   *(Or permanently store it in your GitHub account: GitHub $\rightarrow$ **Settings** $\rightarrow$ **Codespaces** $\rightarrow$ **Codespaces secrets** $\rightarrow$ Add `GEMINI_API_KEY`)*.
+3. Start the app:
+   ```bash
+   python app.py
+   ```
+4. Click the **Ports** tab at the bottom $\rightarrow$ Right-click Port `8000` $\rightarrow$ Change Port Visibility to **Public** $\rightarrow$ Click the **Local Address** URL (e.g. `https://<codespace-id>-8000.app.github.dev`).
+5. Your live Voice RAG app is instantly accessible on the web!
 
-### Option 2: Render.com
+---
+
+### 2. Why Not GitHub Pages?
+* **GitHub Pages** is strictly a static file host (HTML/CSS/JS only). It **cannot run Python code**, execute Uvicorn/FastAPI servers, query ChromaDB, or generate Edge-TTS audio.
+* To host the app 24/7 for free outside Codespaces, deploy the backend to one of the free container platforms below:
+
+### Option A: Hugging Face Spaces (24/7 Free Docker Hosting)
+1. Create a new Space on [Hugging Face](https://huggingface.co/spaces) $\rightarrow$ Choose **Docker** SDK.
+2. In your Space Settings, add the secret `GEMINI_API_KEY`.
+3. Push this GitHub repository to the Space or connect it via GitHub. The provided `Dockerfile` will automatically build and launch the app with a permanent public URL.
+
+### Option B: Render.com
 1. Create a new **Web Service** on [Render](https://render.com).
-2. Connect your GitHub repository `https://github.com/Moulyyy/RAG.git`.
-3. Choose **Docker** environment or Python environment (`uvicorn app:app --host 0.0.0.0 --port $PORT`).
-4. Add environment variable `GEMINI_API_KEY`.
+2. Connect `https://github.com/Moulyyy/RAG.git`.
+3. Select **Docker** environment and add the `GEMINI_API_KEY` environment variable.
 
-### Option 3: Docker Local / VPS
+### Option C: Docker Local / VPS
 ```bash
 docker build -t voice-rag .
 docker run -p 8000:8000 -e GEMINI_API_KEY="your_api_key" voice-rag
