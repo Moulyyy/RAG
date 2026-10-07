@@ -171,5 +171,6 @@ async def process_tts(req: TTSRequest):
 
 if __name__ == "__main__":
     import uvicorn
-    print("\n🚀 Starting Voice RAG Server on http://127.0.0.1:8000")
-    uvicorn.run("app:app", host="127.0.0.1", port=8000, reload=True)
+    port = int(os.environ.get("PORT", 8000))
+    print(f"\n🚀 Starting Voice RAG Server on http://0.0.0.0:{port}")
+    uvicorn.run("app:app", host="0.0.0.0", port=port, reload=True)

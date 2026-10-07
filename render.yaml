@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: voice-book-rag
+    runtime: docker
+    plan: free
+    healthCheckPath: /api/status
+    envVars:
+      - key: GEMINI_API_KEY
+        sync: false
